@@ -7,17 +7,19 @@
   - [Viewing all tables in current database](#viewing-all-tables-in-current-database)
   - [Viewing a specific table](#viewing-a-specific-table)
   - [Viewing values in a table](#viewing-values-in-a-table)
-  - [Deleting (drop) a table](#deleting-drop-a-table)
 - [__Databases__](#databases)
   - [Creating Databases](#creating-databases)
-  - [Deleting (drop) a database](#deleting-drop-a-database)
+  - [Deleting (dropping) a database](#deleting-dropping-a-database)
 - [__Tables__](#tables)
   - [Data types](#data-types)
     - [Integer](#integer)
     - [Fixed Point / Exact (`DECIMAL` and `NUMERIC`)](#fixed-point--exact-decimal-and-numeric)
     - [Floating Point / Approximate (`FLOAT` and `DOUBLE`)](#floating-point--approximate-float-and-double)
     - [CHAR and VARCHAR (Strings)](#char-and-varchar-strings)
+    - [DATE, DATETIME and TIMESTAMP](#date-datetime-and-timestamp)
   - [Creating a simple table](#creating-a-simple-table)
+  - [Deleting (dropping) a table](#deleting-dropping-a-table)
+  - [Deleting (dropping) a table](#deleting-dropping-a-table-1)
   - [Creating a table *without* NULL values](#creating-a-table-without-null-values)
 
 
@@ -39,7 +41,7 @@ SHOW DATABASES;
 | sys                |
 +--------------------+
 ```
-
+***
 ### Changing which database you're using
 ```sql
 USE <db_name>;
@@ -52,7 +54,7 @@ USE pet_shop;
 ```
 Database changed
 ```
-
+***
 ### Viewing all tables in current database
 ```sql
 SHOW TABLES;
@@ -68,6 +70,8 @@ SHOW TABLES;
 | quotes             |
 +--------------------+
 ```
+
+***
 
 ### Viewing a specific table
 ```sql
@@ -89,7 +93,7 @@ DESC dogs;
 | age   | int         | YES  |     | NULL    |                |
 +-------+-------------+------+-----+---------+----------------+
 ```
-
+***
 ### Viewing values in a table
 ```sql
 SELECT * FROM <table_name>;
@@ -114,41 +118,7 @@ SELECT * FROM cats;
 |     7 | Potato Face |   15 |
 +-------+-------------+------+
 ```
-
-### Deleting (drop) a table
-```sql
-DROP TABLE <table_name>
-```
-
-#### *Example* <!-- omit from toc -->
-```sql
-DROP TABLE quotes;
-```
-
-#### *Before* <!-- omit from toc -->
-```sql
-SHOW TABLES;
-+--------------------+
-| Tables_in_pet_shop |
-+--------------------+
-| cats               |
-| cats2              |
-| dogs               |
-| quotes             |
-+--------------------+
-```
-
-#### *After* <!-- omit from toc -->
-```sql
-SHOW TABLEs;
-+--------------------+
-| Tables_in_pet_shop |
-+--------------------+
-| cats               |
-| cats2              |
-| dogs               |
-+--------------------+
-```
+***
 
 ## __Databases__
 
@@ -190,8 +160,8 @@ SHOW DATABSES;
 +--------------------+
 ```
 
-
-### Deleting (drop) a database
+***
+### Deleting (dropping) a database
 ```sql
 DROP DATABASE <db_name>;
 ```
@@ -229,7 +199,7 @@ SHOW DATABASES;
 +--------------------+
 ```
 
-
+***
 ## __Tables__
 
 ### Data types
@@ -238,13 +208,16 @@ Before diving into the creation of tables, we need a brief overview of data type
 When creating a table, one will need to define a data type for each column in their table. For instance, if one has a column `age` they may want to store an `INT` in that column
 
 Below are some of the more common datatypes one will use.
-
+***
 #### Integer
 |Type       |Size (bytes)   |Min Signed         |Max Signed             |Min Unsigned   |Max Unsigned           |
 |:---------:|:----------:   |:--------:         |:--------:             |:----------:   |:----------:           |
 |SMALLINT   |   2           |   -32768          |   32767               |   0           |   65535               |
 |INT        |   4           |   -2147483648     |   2147483647          |   0           |   4294967295          |
 |BIGINT     |   8           |   -2<sup>63</sup> |   2<sup>63</sup>-1    |   0           |   2<sup>64</sup>-1    |
+
+***
+
 #### Fixed Point / Exact (`DECIMAL` and `NUMERIC`)
 From [MySQL Fixed Point doc](https://dev.mysql.com/doc/refman/8.0/en/fixed-point-types.html): The DECIMAL and NUMERIC types store exact numeric data values. These types are used when it is important to preserve exact precision, for example with monetary data. In MySQL, `NUMERIC` is implemented as `DECIMAL`, so the following remarks about `DECIMAL` apply equally to `NUMERIC`.
 
@@ -252,7 +225,9 @@ In a `DECIMAL` column declaration, the precision and scale can be (and usually i
 
 Standard SQL requires that `DECIMAL(5,2)` be able to store any value with five digits and two decimals, so values that can be stored in the salary column range from -999.99 to 999.99.
 
-If the scale is 0, `DECIMAL` values contain no decimal point or fractional part.
+If the scale is 0, `DECIMAL` values contain no decimal point or fractional part.  
+
+***
 
 #### Floating Point / Approximate (`FLOAT` and `DOUBLE`)
 From [MySQL Floating Point doc](https://dev.mysql.com/doc/refman/8.0/en/floating-point-types.html): The FLOAT and DOUBLE types represent approximate numeric data values. MySQL uses four bytes for single-precision values and eight bytes for double-precision values.
@@ -267,6 +242,8 @@ Because floating-point values are __approximate__ and not stored as exact values
 
 For maximum portability, code requiring storage of approximate numeric data values should use FLOAT or DOUBLE PRECISION with no specification of precision or number of digits.
 
+***
+
 #### CHAR and VARCHAR (Strings)
 From [MySQL CHAR doc](https://dev.mysql.com/doc/refman/8.0/en/char.html): The `CHAR` and `VARCHAR` types are similar, but differ in the way they are stored and retrieved. They also differ in maximum length and in whether trailing spaces are retained.
 
@@ -276,9 +253,22 @@ The length of a `CHAR` column is fixed to the length that you declare when you c
 
 Values in `VARCHAR` columns are variable-length strings. The length can be specified as a value from 0 to 65,535. The effective maximum length of a `VARCHAR` is subject to the maximum row size (65,535 bytes, which is shared among all columns) and the character set used. See [Section 8.4.7, “Limits on Table Column Count and Row Size”](https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html).
 
+The following table illustrates the differences between `CHAR` and `VARCHAR` by showing the result of storing various string values into `CHAR(4)` and `VARCHAR(4)` columns. In other words, `CHAR(4)` will always store 4 bytes. `VARCHAR(4)` will store anywhere from `1+0=1` to `1+4=5` bytes, depending on how long the input is.
+|Value|	CHAR(4)|	Storage Required|	VARCHAR(4)|	Storage Required|
+|:--:|:--:|:--:|:--:|:--:|
+|''|'    '|	4 bytes	|''	|1 byte|
+|'ab'|	'ab  '	|4 bytes	|'ab'|	3 bytes|
+|'abcd'|	'abcd'|	4 bytes	|'abcd'|	5 bytes|
+|'abcdefgh'|	'abcd'	|4 bytes	|'abcd'	|5 bytes|
+***
+#### DATE, DATETIME and TIMESTAMP
 
+
+***
 For even __more__ information on the dataypes available, please visit the [MySQL Documentation](https://dev.mysql.com/doc/refman/8.0/en/data-types.html).
 
+Okay, now that we have all *that* out of the way, let's move on to actually *creating* tables!
+***
 ### Creating a simple table
 ```sql
 CREATE TABLE <name> (
@@ -305,9 +295,76 @@ CREATE TABLE dogs (
 | age   | int         | YES  |     | NULL    |                |
 +-------+-------------+------+-----+---------+----------------+
 ```
+### Deleting (dropping) a table
+```sql
+DROP TABLE <table_name>
+```
 
+#### *Example* <!-- omit from toc -->
+```sql
+DROP TABLE quotes;
+```
 
+#### *Before* <!-- omit from toc -->
+```sql
+SHOW TABLES;
++--------------------+
+| Tables_in_pet_shop |
++--------------------+
+| cats               |
+| cats2              |
+| dogs               |
+| quotes             |
++--------------------+
+```
 
+#### *After* <!-- omit from toc -->
+```sql
+SHOW TABLEs;
++--------------------+
+| Tables_in_pet_shop |
++--------------------+
+| cats               |
+| cats2              |
+| dogs               |
++--------------------+
+```
+***
+### Deleting (dropping) a table
+```sql
+DROP TABLE <table_name>
+```
+
+#### *Example* <!-- omit from toc -->
+```sql
+DROP TABLE quotes;
+```
+
+#### *Before* <!-- omit from toc -->
+```sql
+SHOW TABLES;
++--------------------+
+| Tables_in_pet_shop |
++--------------------+
+| cats               |
+| cats2              |
+| dogs               |
+| quotes             |
++--------------------+
+```
+
+#### *After* <!-- omit from toc -->
+```sql
+SHOW TABLEs;
++--------------------+
+| Tables_in_pet_shop |
++--------------------+
+| cats               |
+| cats2              |
+| dogs               |
++--------------------+
+```
+***
 
 ### Creating a table *without* NULL values
 
