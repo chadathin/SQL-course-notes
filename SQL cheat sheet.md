@@ -18,6 +18,10 @@
     - [CHAR and VARCHAR (Strings)](#char-and-varchar-strings)
     - [DATE, DATETIME and TIMESTAMP](#date-datetime-and-timestamp)
   - [Creating a simple table](#creating-a-simple-table)
+- [Constraints, Keys and Default Values](#constraints-keys-and-default-values)
+  - [Constraints](#constraints)
+  - [Primary Keys](#primary-keys)
+  - [Default values](#default-values)
   - [Deleting (dropping) a table](#deleting-dropping-a-table)
   - [Basic CRUD Operations (Create, Read, Update, Delete)](#basic-crud-operations-create-read-update-delete)
     - [Create](#create)
@@ -296,7 +300,7 @@ CREATE TABLE dogs (
 ```
 
 ```sql
--- After running: DESC dogs;
+DESC dogs;
 +-------+-------------+------+-----+---------+----------------+
 | Field | Type        | Null | Key | Default | Extra          |
 +-------+-------------+------+-----+---------+----------------+
@@ -304,6 +308,159 @@ CREATE TABLE dogs (
 | breed | varchar(50) | YES  |     | NULL    |                |
 | age   | int         | YES  |     | NULL    |                |
 +-------+-------------+------+-----+---------+----------------+
+```
+
+***
+
+## Constraints, Keys and Default Values
+
+### Constraints
+Probably one of the more commonly used constraints is to prevent `NULL` values. We can do this by simply using `NOT NULL` when creating a table. For example, if we peek at our `shops` table:
+
+```sql
+DESC shops;
++-------+--------------+------+-----+---------+-------+
+| Field | Type         | Null | Key | Default | Extra |
++-------+--------------+------+-----+---------+-------+
+| name  | varchar(100) | YES  |     | NULL    |       |
++-------+--------------+------+-----+---------+-------+
+```
+We can see the `NULL` column is `YES`, meaning it *allows* `NULL` values.
+
+BUT, if we create a table called `runs` and prevent `NULL`:
+
+```sql
+CREATE TABLE runs (
+    location VARCHAR(100) NOT NULL,
+    distance FLOAT NOT NULL
+    );
+```
+Then take a peek:
+```sql
+DESC runs;
++----------+--------------+------+-----+---------+-------+
+| Field    | Type         | Null | Key | Default | Extra |
++----------+--------------+------+-----+---------+-------+
+| location | varchar(100) | NO   |     | NULL    |       |
+| distance | float        | NO   |     | NULL    |       |
++----------+--------------+------+-----+---------+-------+
+```
+We can see `NULL` is set to `NO`, meaning `NULL` is not allowed. If we try to add a record with `NULL` we get an error:
+
+```sql
+INSERT INTO runs (location, distance) VALUES (NULL, 3.1);
+
+ERROR 1048 (23000): Column 'location' cannot be null
+```
+But if we provide values for both columns, it's a success:
+
+```sql
+INSERT INTO runs (location, distance) VALUES ('Chicago', 3.1);
+
+SELECT * FROM runs;
++----------+----------+
+| location | distance |
++----------+----------+
+| Chicago  |      3.1 |
++----------+----------+
+
+```
+***
+### Primary Keys
+A Primary Key is a unique identifier for a record (row) in a table. We'll talk more about Primary and Foreign Keys later. The main thing to cover right now is how to define Primary keys. This can be done with the `PRIMARY KEY` constraint, often in conjuction with `NOT NULL` and another special constraint; `AUTO_INCREMENT`. This will automatically increment the value of the column whenever a record is added.
+
+So, putting this all together, we can create a table named `cars` with a `PRIMARY KEY` of `carID`:
+
+```sql
+CREATE TABLE cars (
+    carID INT NOT NULL AUTO_INCREMENT,
+    brand VARCHAR(50),
+    gas_mileage INT,
+    PRIMARY KEY(carID)
+  );
+```
+And take a peek:
+```sql
+DESC cars;
++-------------+-------------+------+-----+---------+----------------+
+| Field       | Type        | Null | Key | Default | Extra          |
++-------------+-------------+------+-----+---------+----------------+
+| carID       | int         | NO   | PRI | NULL    | auto_increment |
+| brand       | varchar(50) | YES  |     | NULL    |                |
+| gas_mileage | int         | YES  |     | NULL    |                |
++-------------+-------------+------+-----+---------+----------------+
+```
+
+Now, if we add a few vehicles:
+```sql
+INSERT INTO cars (brand, gas_mileage) VALUES
+    ("Chevrolet", 25),
+    ("Toyota", 35),
+    ("Ford", 8),
+    ("Honda", 32);
+```
+
+And take a peek:
+```sql
+SELECT * FROM cars;
++-------+-----------+-------------+
+| carID | brand     | gas_mileage |
++-------+-----------+-------------+
+|     1 | Chevrolet |          25 |
+|     2 | Toyota    |          35 |
+|     3 | Ford      |           8 |
+|     4 | Honda     |          32 |
++-------+-----------+-------------+
+```
+
+We can see the `PRIMARY KEY`, `carID`, automatically incremented itself each time a vehicle was added!
+
+***
+### Default values
+To insert a default value, we can use `DEFAULT` and specify our default value. For example:
+```sql
+CREATE TABLE shoes 
+  (
+    brand VARCHAR(100) DEFAULT 'unnamed',
+    size INT DEFAULT -1
+  );
+```
+
+Now if we take a peek at our table:
+```sql
+DESC shoes;
++-------+--------------+------+-----+---------+-------+
+| Field | Type         | Null | Key | Default | Extra |
++-------+--------------+------+-----+---------+-------+
+| brand | varchar(100) | YES  |     | unnamed |       |
+| size  | int          | YES  |     | -1      |       |
++-------+--------------+------+-----+---------+-------+
+```
+
+
+Or, if we insert a shoe with a `brand`, but no `size` it will enter `-1` for a size by default.
+```sql
+INSERT INTO shoes (brand) VALUES ('Saucony');
+
+SELECT * FROM shoes;
++---------+------+
+| brand   | size |
++---------+------+
+| Saucony |   -1 |
++---------+------+
+```
+
+Similar, if we  add an entry without a `brand`.
+```sql
+INSERT INTO shoes (size) VALUES (12);
+
+SELECT * FROM shoes;
++---------+------+
+| brand   | size |
++---------+------+
+| Saucony |   -1 |
+| unnamed |   12 |
++---------+------+
 ```
 
 ***
@@ -333,7 +490,7 @@ SHOW TABLES;
 
 ### *After* <!-- omit from toc -->
 ```sql
-SHOW TABLEs;
+SHOW TABLES;
 +--------------------+
 | Tables_in_pet_shop |
 +--------------------+
@@ -345,7 +502,7 @@ SHOW TABLEs;
 ***
 
 ### Basic CRUD Operations (Create, Read, Update, Delete)
-***
+
 #### Create
 When we say "Create" we mean create a record. In other words, we want to `INSERT` into our table.
 ```sql
@@ -513,3 +670,5 @@ Again, we will cover more in the Advanced CRUD section. But this will suffice, f
 
 ***
 #### Delete
+
+***
