@@ -26,6 +26,7 @@
   - [Basic CRUD Operations (Create, Read, Update, Delete)](#basic-crud-operations-create-read-update-delete)
     - [Create](#create)
     - [Read](#read)
+      - [Aliasing](#aliasing)
     - [Update](#update)
     - [Delete](#delete)
 
@@ -367,18 +368,20 @@ SELECT * FROM runs;
 ```
 ***
 ### Primary Keys
-A Primary Key is a unique identifier for a record (row) in a table. We'll talk more about Primary and Foreign Keys later. The main thing to cover right now is how to define Primary keys. This can be done with the `PRIMARY KEY` constraint, often in conjuction with `NOT NULL` and another special constraint; `AUTO_INCREMENT`. This will automatically increment the value of the column whenever a record is added.
+A Primary Key is a unique identifier for a record (row) in a table. We'll talk more about Primary and Foreign Keys later. The main thing to cover right now is how to define Primary keys. This can be done with the `PRIMARY KEY` constraint and another special constraint; `AUTO_INCREMENT`. This will automatically increment the value of the column whenever a record is added.
 
 So, putting this all together, we can create a table named `cars` with a `PRIMARY KEY` of `carID`:
 
 ```sql
 CREATE TABLE cars (
-    carID INT NOT NULL AUTO_INCREMENT,
+    carID INT AUTO_INCREMENT,
     brand VARCHAR(50),
     gas_mileage INT,
     PRIMARY KEY(carID)
   );
 ```
+[Note]: When defining a `PRIMARY KEY`, stating `NOT NULL` is a bit redundant. `PRIMARY KEY`s *can not* be `NULL`.
+
 And take a peek:
 ```sql
 DESC cars;
@@ -662,13 +665,131 @@ SELECT name, age FROM cats WHERE name LIKE "_e%";
 | Meatball |    5 |
 +----------+------+
 ```
+##### Aliasing
+If a column name is too long, or cumbersome to type every time, we can use the `AS` clause to create an alias and make that column name easier to work with. For instance, if we peek at the `employees` table:
+
+```sql
+SELECT * FROM employees;
++----+-----------+------------+-------------+-----+----------------+
+| id | last_name | first_name | middle_name | age | current_status |
++----+-----------+------------+-------------+-----+----------------+
+|  1 | Doe       | Jon        | NULL        |  40 | employed       |
+|  2 | Wolinsky  | Mike       | NULL        |  55 | employed       |
+|  3 | E         | WALL       | NULL        | 215 | employed       |
++----+-----------+------------+-------------+-----+----------------+
+```
+
+Maybe we decide `last_name` is a little annoying to have to type every time, but we still want to select it. We can use an alias like this:
+
+```sql
+SELECT last_name AS lname, age FROM employees;
++----------+-----+
+| lname    | age |
++----------+-----+
+| Doe      |  40 |
+| Wolinsky |  55 |
+| E        | 215 |
++----------+-----+
+```
+Notice the resultant `last_name` column is returned as `lname`, but rest assured the original column is still named `last_name` in the table.
 
 Again, we will cover more in the Advanced CRUD section. But this will suffice, for now. 
 ***
 #### Update
+```sql
+UPDATE <table_name> SET <col> = <new_value> WHERE <condition>;
+```
 
+For example, in our `employees` table:
 
+```sql
+SELECT * FROM employees;
++----+-----------+------------+-------------+-----+----------------+
+| id | last_name | first_name | middle_name | age | current_status |
++----+-----------+------------+-------------+-----+----------------+
+|  1 | Doe       | Jon        | NULL        |  40 | employed       |
+|  2 | Wolinsky  | Mike       | NULL        |  55 | employed       |
+|  3 | E         | WALL       | NULL        | 215 | employed       |
++----+-----------+------------+-------------+-----+----------------+
+```
+If we want to update Mike Wolinsky's age, we could so so like this:
+
+```sql
+UPDATE employees SET age = 56 WHERE last_name = 'Wolinsky';
+
+Query OK, 1 row affected (0.00 sec)
+
+Rows matched: 1  Changed: 1  Warnings: 0
+```
+Now we have:
+```sql
+SELECT * FROM employees;
++----+-----------+------------+-------------+-----+----------------+
+| id | last_name | first_name | middle_name | age | current_status |
++----+-----------+------------+-------------+-----+----------------+
+|  1 | Doe       | Jon        | NULL        |  40 | employed       |
+|  2 | Wolinsky  | Mike       | NULL        |  56 | employed       |
+|  3 | E         | WALL       | NULL        | 215 | employed       |
++----+-----------+------------+-------------+-----+----------------+
+```
 ***
-#### Delete
 
+We DO have to be careful to include some kind of filtering or `WHERE` clause. Using `UPDATE` without it (like this):
+
+```sql
+UPDATE employees SET age=56;
+```
+*is* valid and will not throw an error. BUT, will update the `age` of ALL rows to reflect the new value.
+
+To update multiple columns at once, we can use:
+```sql
+UPDATE <table_name> SET col1=val1, col2=val2, ... WHERE <condition>;
+```
+
+For example, if we needed to lay off Jon:
+```sql
+UPDATE employees SET current_status='laid off', last_name = 'gone' WHERE id=1;
+```
+Gives us
+```sql
+SELECT * FROM employees;
++----+-----------+------------+-------------+-----+----------------+
+| id | last_name | first_name | middle_name | age | current_status |
++----+-----------+------------+-------------+-----+----------------+
+|  1 | gone      | Jon        | NULL        |  40 | laid off       |
+|  2 | Wolinsky  | Mike       | NULL        |  56 | employed       |
+|  3 | E         | WALL       | NULL        | 215 | employed       |
++----+-----------+------------+-------------+-----+----------------+
+```
+Or if WALL E suffered a mechanical failure:
+```sql
+UPDATE employees SET current_status='in shop' WHERE id=3;
+```
+```sql
+SELECT * FROM employees;
++----+-----------+------------+-------------+-----+----------------+
+| id | last_name | first_name | middle_name | age | current_status |
++----+-----------+------------+-------------+-----+----------------+
+|  1 | gone      | Jon        | NULL        |  40 | laid off       |
+|  2 | Wolinsky  | Mike       | NULL        |  56 | employed       |
+|  3 | E         | WALL       | NULL        | 215 | in shop        |
++----+-----------+------------+-------------+-----+----------------+
+```
+#### Delete
+```sql
+DELETE FROM <table_name> WHERE <condition>;
+```
+For example, WALL E is beyond repair and we have to scrap him:
+```sql
+DELETE FROM employees WHERE id = 3;
+```
+```sql
+SELECT * FROM employees;
++----+-----------+------------+-------------+-----+----------------+
+| id | last_name | first_name | middle_name | age | current_status |
++----+-----------+------------+-------------+-----+----------------+
+|  1 | gone      | Jon        | NULL        |  40 | laid off       |
+|  2 | Wolinsky  | Mike       | NULL        |  56 | employed       |
++----+-----------+------------+-------------+-----+----------------+
+```
 ***
