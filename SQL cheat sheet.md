@@ -29,6 +29,36 @@
       - [Aliasing](#aliasing)
     - [Update](#update)
     - [Delete](#delete)
+- [String Functions](#string-functions)
+  - [`CONCAT()`](#concat)
+  - [`SUBSTRING()` and `SUBSTR()` (synonymous)](#substring-and-substr-synonymous)
+  - [`REPLACE()`](#replace)
+  - [`REVERSE()`](#reverse)
+  - [`CHAR_LENGTH()`](#char_length)
+  - [`UPPER()` and `LOWER()` (or `UCASE` and `LCASE()`)](#upper-and-lower-or-ucase-and-lcase)
+  - [`INSERT()`](#insert)
+  - [`LEFT(str, n)` and `RIGHT(str, n)`](#leftstr-n-and-rightstr-n)
+  - [`REPEAT(str, n)`](#repeatstr-n)
+  - [`TRIM(BOTH | LEADING | TRAILING substr FROM str)`](#trimboth--leading--trailing-substr-from-str)
+- [Refining Results](#refining-results)
+    - [`DISTINCT`](#distinct)
+  - [Sorting](#sorting)
+    - [`ORDER BY`](#order-by)
+    - [`LIMIT`](#limit)
+    - [`LIKE` (for basic searching)](#like-for-basic-searching)
+- [Aggregate Functions](#aggregate-functions)
+    - [`COUNT()`](#count)
+    - [`GROUP BY`](#group-by)
+    - [`MIN()` and `MAX()`](#min-and-max)
+    - [`MIN()` and `MAX()` with `GROUP BY`](#min-and-max-with-group-by)
+    - [`SUM(col)`](#sumcol)
+    - [`AVG()`](#avg)
+- [`DATE`, `TIME`, and `DATETIME` data types](#date-time-and-datetime-data-types)
+    - [`DATE` datatype](#date-datatype)
+    - [`TIME`](#time)
+    - [`DATETIME` datatype](#datetime-datatype)
+    - [`TIMESTAMP` datatype](#timestamp-datatype)
+    - [`CURDATE ()`, `CURTIME()`, `NOW()` functions](#curdate--curtime-now-functions)
 
 
 
@@ -793,3 +823,783 @@ SELECT * FROM employees;
 +----+-----------+------------+-------------+-----+----------------+
 ```
 ***
+## String Functions
+[MySQL String docs](https://dev.mysql.com/doc/refman/8.0/en/string-functions.html)
+
+### `CONCAT()`
+```sql
+SELECT CONCAT(str1, str2, str3) from <table_name>;
+
+-> "str1str2str3"
+```
+Can concatenate values from columns
+```sql
+SELECT CONCAT(author_fname, ' ', author_lname) FROM books;
+
++-----------------------------------------+
+| CONCAT(author_fname, ' ', author_lname) |
++-----------------------------------------+
+| Jhumpa Lahiri                           |
+| Neil Gaiman                             |
+| Neil Gaiman                             |
+| Jhumpa Lahiri                           |
+| Dave Eggers                             |
+| Dave Eggers                             |
+| Michael Chabon                          |
+| Patti Smith                             |
+| Dave Eggers                             |
+| Neil Gaiman                             |
+| Raymond Carver                          |
+| Raymond Carver                          |
+| Don DeLillo                             |
+| John Steinbeck                          |
+| David Foster Wallace                    |
+| David Foster Wallace                    |
++-----------------------------------------+
+```
+Can also use aliasing to make the column title a bit more palatable
+
+```sql
+SELECT CONCAT(author_fname, ' ', author_lname) AS Author FROM books;
++----------------------+
+| Author               |
++----------------------+
+| Jhumpa Lahiri        |
+| Neil Gaiman          |
+| Neil Gaiman          |
+| Jhumpa Lahiri        |
+| Dave Eggers          |
+| Dave Eggers          |
+| Michael Chabon       |
+| Patti Smith          |
+| Dave Eggers          |
+| Neil Gaiman          |
+| Raymond Carver       |
+| Raymond Carver       |
+| Don DeLillo          |
+| John Steinbeck       |
+| David Foster Wallace |
+| David Foster Wallace |
++----------------------+
+```
+AND we can eliminate duplicates with `GROUP BY`:
+
+```sql
+SELECT CONCAT(author_fname, ' ', author_lname) AS Author FROM books GROUP BY Author;
++----------------------+
+| Author               |
++----------------------+
+| Jhumpa Lahiri        |
+| Neil Gaiman          |
+| Dave Eggers          |
+| Michael Chabon       |
+| Patti Smith          |
+| Raymond Carver       |
+| Don DeLillo          |
+| John Steinbeck       |
+| David Foster Wallace |
++----------------------+
+```
+Much cleaner.
+
+Speaking of "cleaner", there is an additional concatenation function which might make that query just a *little* cleaner: `CONCAT_WS` or 'concat with separator.
+```sql
+SELECT CONCAT_WS(sep, str1, str2, ...) from <table_name>;
+```
+This will add the given separator `sep` between each string.
+```sql
+SELECT CONCAT_WS(' ', author_fname, author_lname) AS Author FROM books GROUP BY Author;
++----------------------+
+| Author               |
++----------------------+
+| Jhumpa Lahiri        |
+| Neil Gaiman          |
+| Dave Eggers          |
+| Michael Chabon       |
+| Patti Smith          |
+| Raymond Carver       |
+| Don DeLillo          |
+| John Steinbeck       |
+| David Foster Wallace |
++----------------------+
+```
+
+### `SUBSTRING()` and `SUBSTR()` (synonymous)
+
+```sql
+SELECT SUBSTRING(str, start, length);
+```
+Where start is the starting letter (1-indexed) and length is the length of the resultant string.
+
+For example:
+```sql 
+SELECT SUBSTRING("Hello, world!",2,4);
++--------------------------------+
+| SUBSTRING("Hello, world!",2,4) |
++--------------------------------+
+| ello                           |
++--------------------------------+
+```
+We start at the 2<sup>nd</sup> letter (`e`), and we want the result to be four characters long. 
+
+### `REPLACE()`
+```sql
+SELECT REPLACE(str, substr_to_replace, what_to_replace_with)
+```
+
+```sql
+SELECT REPLACE('I want a job', 'want', 'need');
+-> I need a job
+```
+Doesn't actually alter table. So we can run...
+```sql
+SELECT REPLACE(title, ' ', '-') FROM books;
++-----------------------------------------------------+
+| REPLACE(title, ' ', '-')                            |
++-----------------------------------------------------+
+| The-Namesake                                        |
+| Norse-Mythology                                     |
+| American-Gods                                       |
+| Interpreter-of-Maladies                             |
+| A-Hologram-for-the-King:-A-Novel                    |
+| The-Circle                                          |
+| The-Amazing-Adventures-of-Kavalier-&-Clay           |
+| Just-Kids                                           |
+| A-Heartbreaking-Work-of-Staggering-Genius           |
+| Coraline                                            |
+| What-We-Talk-About-When-We-Talk-About-Love:-Stories |
+| Where-I'm-Calling-From:-Selected-Stories            |
+| White-Noise                                         |
+| Cannery-Row                                         |
+| Oblivion:-Stories                                   |
+| Consider-the-Lobster                                |
++-----------------------------------------------------+
+```
+BUT....
+```sql
+SELECT title FROM books;
++-----------------------------------------------------+
+| title                                               |
++-----------------------------------------------------+
+| The Namesake                                        |
+| Norse Mythology                                     |
+| American Gods                                       |
+| Interpreter of Maladies                             |
+| A Hologram for the King: A Novel                    |
+| The Circle                                          |
+| The Amazing Adventures of Kavalier & Clay           |
+| Just Kids                                           |
+| A Heartbreaking Work of Staggering Genius           |
+| Coraline                                            |
+| What We Talk About When We Talk About Love: Stories |
+| Where I'm Calling From: Selected Stories            |
+| White Noise                                         |
+| Cannery Row                                         |
+| Oblivion: Stories                                   |
+| Consider the Lobster                                |
++-----------------------------------------------------+
+```
+
+### `REVERSE()`
+Just reverses the string given to it.
+```sql
+SELECT REVERSE('REVERSE ME');
++-----------------------+
+| REVERSE('REVERSE ME') |
++-----------------------+
+| EM ESREVER            |
++-----------------------+
+```
+
+### `CHAR_LENGTH()`
+Gives the length of the string as a number of chars
+```sql
+SELECT author_lname, CHAR_LENGTH(author_lname) FROM books;
++----------------+---------------------------+
+| author_lname   | CHAR_LENGTH(author_lname) |
++----------------+---------------------------+
+| Lahiri         |                         6 |
+| Gaiman         |                         6 |
+| Gaiman         |                         6 |
+| Lahiri         |                         6 |
+| Eggers         |                         6 |
+| Eggers         |                         6 |
+| Chabon         |                         6 |
+| Smith          |                         5 |
+| Eggers         |                         6 |
+| Gaiman         |                         6 |
+| Carver         |                         6 |
+| Carver         |                         6 |
+| DeLillo        |                         7 |
+| Steinbeck      |                         9 |
+| Foster Wallace |                        14 |
+| Foster Wallace |                        14 |
++----------------+---------------------------+
+```
+
+### `UPPER()` and `LOWER()` (or `UCASE` and `LCASE()`)
+Makes all letters upper-case or lower-case
+```sql
+SELECT 
+  author_lname AS Author, 
+  UPPER(author_lname) AS Upper_Case, 
+  LOWER(author_lname) AS Lower_Case 
+FROM 
+  books 
+GROUP BY 
+  Author;
++----------------+----------------+----------------+
+| Author         | Upper_Case     | Lower_Case     |
++----------------+----------------+----------------+
+| Lahiri         | LAHIRI         | lahiri         |
+| Gaiman         | GAIMAN         | gaiman         |
+| Eggers         | EGGERS         | eggers         |
+| Chabon         | CHABON         | chabon         |
+| Smith          | SMITH          | smith          |
+| Carver         | CARVER         | carver         |
+| DeLillo        | DELILLO        | delillo        |
+| Steinbeck      | STEINBECK      | steinbeck      |
+| Foster Wallace | FOSTER WALLACE | foster wallace |
++----------------+----------------+----------------+
+```
+### `INSERT()`
+`INSERT(str, pos, num_replace, str_to_insert)`
+```sql
+SELECT INSERT("Hello Bobby", 6, 0, " there");
++---------------------------------------+
+| INSERT("Hello Bobby", 6, 0, " there") |
++---------------------------------------+
+| Hello there Bobby                     |
++---------------------------------------+
+```
+In other words, start at the 6<sup>th</sup> letter (space, in this case), replace zero letters, insert ' there'. Or:
+```sql
+SELECT INSERT("Hello Bobby", 6, 6, " there ");
++----------------------------------------+
+| INSERT("Hello Bobby", 6, 6, " there ") |
++----------------------------------------+
+| Hello there                            |
++----------------------------------------+
+```
+In other words, start at the 6<sup>th</sup> letter (space, in this case), replace six letters (space and the entire word ' Bobby'), insert ' there '.
+
+### `LEFT(str, n)` and `RIGHT(str, n)`
+returns the n left-most and n right-most letters of str
+```sql
+SELECT LEFT("sentence", 3), RIGHT("sentence", 3);
++---------------------+----------------------+
+| LEFT("sentence", 3) | RIGHT("sentence", 3) |
++---------------------+----------------------+
+| sen                 | nce                  |
++---------------------+----------------------+
+```
+
+### `REPEAT(str, n)`
+Repeats str, n times.
+```sql
+SELECT REPEAT('ha', 3);
++-----------------+
+| REPEAT('ha', 3) |
++-----------------+
+| hahaha          |
++-----------------+
+```
+
+### `TRIM(BOTH | LEADING | TRAILING substr FROM str)`
+
+Removes either both, the leading, or the trailing substr from str. Will trim leading and trailing spaces by default.
+```sql
+SELECT 
+  TRIM(LEADING "x" FROM 'xxxfooxxx') AS front, 
+  TRIM(TRAILING "x" FROM 'xxxfooxxx') AS back,
+  TRIM(BOTH "x" FROM 'xxxfooxxx') AS front_and_back;
++--------+--------+----------------+
+| front  | back   | front_and_back |
++--------+--------+----------------+
+| fooxxx | xxxfoo | foo            |
++--------+--------+----------------+
+```
+
+## Refining Results
+#### `DISTINCT`
+Eliminates duplicate values
+```sql
+-- Without distinct
+SELECT author_lname FROM books;
++----------------+
+| author_lname   |
++----------------+
+| Lahiri         |
+| Gaiman         |
+| Gaiman         |
+| Lahiri         |
+| Eggers         |
+| Eggers         |
+| Chabon         |
+| Smith          |
+| Eggers         |
+| Gaiman         |
+| Carver         |
+| Carver         |
+| DeLillo        |
+| Steinbeck      |
+| Foster Wallace |
+| Foster Wallace |
+| Harris         |
+| Harris         |
+| Saunders       |
++----------------+
+```
+
+```sql
+-- WITH distinct
+SELECT DISTINCT author_lname FROM books;
++----------------+
+| author_lname   |
++----------------+
+| Lahiri         |
+| Gaiman         |
+| Eggers         |
+| Chabon         |
+| Smith          |
+| Carver         |
+| DeLillo        |
+| Steinbeck      |
+| Foster Wallace |
+| Harris         |
+| Saunders       |
++----------------+
+```
+
+Can also find distinct combinations of values.
+```sql
+SELECT DISTINCT author_lname, author_fname FROM books;
++----------------+--------------+
+| author_lname   | author_fname |
++----------------+--------------+
+| Lahiri         | Jhumpa       |
+| Gaiman         | Neil         |
+| Eggers         | Dave         |
+| Chabon         | Michael      |
+| Smith          | Patti        |
+| Carver         | Raymond      |
+| DeLillo        | Don          |
+| Steinbeck      | John         |
+| Foster Wallace | David        |
+| Harris         | Dan          |
+| Harris         | Freida       |
+| Saunders       | George       |
++----------------+--------------+
+```
+
+### Sorting
+#### `ORDER BY`
+```sql
+SELECT <cols...> FROM <table_name> ORDER BY <some_col> `DESC | ASC`;
+```
+Ascending (`ASC`) is default
+
+```sql
+SELECT book_id, author_fname, author_lname FROM books ORDER BY author_lname;
++---------+--------------+----------------+
+| book_id | author_fname | author_lname   |
++---------+--------------+----------------+
+|      11 | Raymond      | Carver         |
+|      12 | Raymond      | Carver         |
+|       7 | Michael      | Chabon         |
+|      13 | Don          | DeLillo        |
+|       5 | Dave         | Eggers         |
+|       6 | Dave         | Eggers         |
+|       9 | Dave         | Eggers         |
+|      15 | David        | Foster Wallace |
+|      16 | David        | Foster Wallace |
+|       2 | Neil         | Gaiman         |
+|       3 | Neil         | Gaiman         |
+|      10 | Neil         | Gaiman         |
+|      17 | Dan          | Harris         |
+|      18 | Freida       | Harris         |
+|       1 | Jhumpa       | Lahiri         |
+|       4 | Jhumpa       | Lahiri         |
+|      19 | George       | Saunders       |
+|       8 | Patti        | Smith          |
+|      14 | John         | Steinbeck      |
++---------+--------------+----------------+
+```
+
+Can also order by a specific column by providing a numeric argument
+
+```sql
+SELECT 
+  title, author_fname, author_lname 
+FROM 
+  books 
+ORDER BY 2;
+```
+Orders the selection by the second column (author_fname, in this case)
+
+Can also sort based on multiple cols. For example:
+```sql
+SELECT author_fname, author_lname FROM books 
+ORDER BY author_lname, author_fname;
+```
+Will sort by `author_lname` first, *then* `author_fname`
+
+```sql
+SELECT author_lname AS name, released_year AS year, title FROM books ORDER BY name, year;
++----------------+------+-----------------------------------------------------+
+| name           | year | title                                               |
++----------------+------+-----------------------------------------------------+
+| Carver         | 1981 | What We Talk About When We Talk About Love: Stories |
+| Carver         | 1989 | Where I'm Calling From: Selected Stories            |
+| Chabon         | 2000 | The Amazing Adventures of Kavalier & Clay           |
+| DeLillo        | 1985 | White Noise                                         |
+| Eggers         | 2001 | A Heartbreaking Work of Staggering Genius           |
+| Eggers         | 2012 | A Hologram for the King: A Novel                    |
+| Eggers         | 2013 | The Circle                                          |
+| Foster Wallace | 2004 | Oblivion: Stories                                   |
+| Foster Wallace | 2005 | Consider the Lobster                                |
+| Gaiman         | 2001 | American Gods                                       |
+| Gaiman         | 2003 | Coraline                                            |
+| Gaiman         | 2016 | Norse Mythology                                     |
+| Harris         | 2001 | fake_book                                           |
+| Harris         | 2014 | 10% Happier                                         |
+| Lahiri         | 1996 | Interpreter of Maladies                             |
+| Lahiri         | 2003 | The Namesake                                        |
+| Saunders       | 2017 | Lincoln In The Bardo                                |
+| Smith          | 2010 | Just Kids                                           |
+| Steinbeck      | 1945 | Cannery Row                                         |
++----------------+------+-----------------------------------------------------+
+```
+Ordered by `author_lname` first, then `released_year`!
+
+#### `LIMIT`
+Limits the number of results by a given number
+```sql
+SELECT author_lname, released_year FROM books LIMIT 5;
++--------------+---------------+
+| author_lname | released_year |
++--------------+---------------+
+| Lahiri       |          2003 |
+| Gaiman       |          2016 |
+| Gaiman       |          2001 |
+| Lahiri       |          1996 |
+| Eggers       |          2012 |
++--------------+---------------+
+```
+Can be used in conjuntion with a sort to find the top or bottom of a list.
+
+```sql
+SELECT 
+  author_lname, released_year 
+FROM 
+  books
+ORDER BY 
+  released_year 
+LIMIT
+  5;
++--------------+---------------+
+| author_lname | released_year |
++--------------+---------------+
+| Steinbeck    |          1945 |
+| Carver       |          1981 |
+| DeLillo      |          1985 |
+| Carver       |          1989 |
+| Lahiri       |          1996 |
++--------------+---------------+
+```
+Finds the top 5 oldest books.
+
+```sql
+SELECT 
+  author_lname, released_year 
+FROM 
+  books 
+ORDER BY 
+  released_year DESC
+LIMIT 
+  5;
++--------------+---------------+
+| author_lname | released_year |
++--------------+---------------+
+| Saunders     |          2017 |
+| Gaiman       |          2016 |
+| Harris       |          2014 |
+| Eggers       |          2013 |
+| Eggers       |          2012 |
++--------------+---------------+
+```
+Finds the top 5 newest books!
+
+Can also 'slice' the results by giving two arguments
+```sql
+ SELECT author_lname, released_year FROM books LIMIT 3,4;
++--------------+---------------+
+| author_lname | released_year |
++--------------+---------------+
+| Lahiri       |          1996 |
+| Eggers       |          2012 |
+| Eggers       |          2013 |
+| Chabon       |          2000 |
++--------------+---------------+
+```
+`LIMIT 3,4` means "start at the 3<sup>rd</sup> value and return 4 results"
+
+#### `LIKE` (for basic searching)
+
+```sql
+SELECT author_lname, author_fname FROM books WHERE author_fname LIKE "%da%";
++----------------+--------------+
+| author_lname   | author_fname |
++----------------+--------------+
+| Eggers         | Dave         |
+| Eggers         | Dave         |
+| Eggers         | Dave         |
+| Foster Wallace | David        |
+| Foster Wallace | David        |
+| Harris         | Dan          |
+| Harris         | Freida       |
++----------------+--------------+
+```
+`%` is a wildcard and can represent any character. In other words, `%da%` indicates the `da` can come anywhere in the name.
+
+`_` is also a *kind* of wildcard. Where `%` can represent *any number of characters*, `_` represents exactly *one* character.
+
+```sql
+SELECT title FROM books WHERE title LIKE "_h%";
++-----------------------------------------------------+
+| title                                               |
++-----------------------------------------------------+
+| The Namesake                                        |
+| The Circle                                          |
+| The Amazing Adventures of Kavalier & Clay           |
+| What We Talk About When We Talk About Love: Stories |
+| Where I'm Calling From: Selected Stories            |
+| White Noise                                         |
++-----------------------------------------------------+
+```
+Returns all titles that have an `h` as the second letter!
+
+## Aggregate Functions
+[MySQL Aggregate Function docs](https://dev.mysql.com/doc/refman/8.0/en/aggregate-functions.html)
+#### `COUNT()` 
+Gives the count of selected items. For example:
+```sql
+SELECT COUNT(DISTINCT author_fname) AS authors FROM books;
++---------+
+| authors |
++---------+
+|      12 |
++---------+
+```
+Gives the number of unique author first names.
+
+#### `GROUP BY`
+Very useful. Groups multiple identical rows into a single row.
+Can use `GROUP BY` along with `COUNT()` to get useful info, like the number duplicate `author_lname`s
+
+```sql
+SELECT author_lname, COUNT(*) FROM books GROUP BY author_lname;
++----------------+----------+
+| author_lname   | COUNT(*) |
++----------------+----------+
+| Lahiri         |        2 |
+| Gaiman         |        3 |
+| Eggers         |        3 |
+| Chabon         |        1 |
+| Smith          |        1 |
+| Carver         |        2 |
+| DeLillo        |        1 |
+| Steinbeck      |        1 |
+| Foster Wallace |        2 |
+| Harris         |        2 |
+| Saunders       |        1 |
++---------------------------+
+```
+`COUNT(*)` counts all rows of a selection.
+
+#### `MIN()` and `MAX()`
+Returns smallest or largest values for arguments passed.
+```sql
+SELECT MIN(released_year) FROM books;
++--------------------+
+| MIN(released_year) |
++--------------------+
+|               1945 |
++--------------------+
+```
+Gives the oldest release year.
+
+But what if I want to know the `title` for the oldest `released_year`? We can use a subquery.
+Kind of like assigning the return of a function to a value. To find the title and length of the longest book, we can run a subquery to find the `MAX()` number of pages, then use that result to filter with `WHERE`.
+```sql
+SELECT title, pages FROM books WHERE pages=(SELECT MAX(pages) FROM books);
++-------------------------------------------+-------+
+| title                                     | pages |
++-------------------------------------------+-------+
+| The Amazing Adventures of Kavalier & Clay |   634 |
++-------------------------------------------+-------+
+```
+
+#### `MIN()` and `MAX()` with `GROUP BY`
+
+Say we want to find the year of an author's FIRST release for each author.
+- First, we can group authors by first and last name.
+```sql
+SELECT 
+  CONCAT(author_fname, ' ', author_lname) AS author 
+FROM 
+  books 
+GROUP BY 
+  author;
++----------------------+
+| author               |
++----------------------+
+| Jhumpa Lahiri        |
+| Neil Gaiman          |
+| Dave Eggers          |
+| Michael Chabon       |
+| Patti Smith          |
+| Raymond Carver       |
+| Don DeLillo          |
+| John Steinbeck       |
+| David Foster Wallace |
+| Dan Harris           |
+| Freida Harris        |
+| George Saunders      |
++----------------------+
+```
+- So far, so good. Now, we have 12 'subgroups' behind the scenes. When we add in a `MIN()` or a `MAX()` it will run on each subgroup.
+```sql
+SELECT 
+  CONCAT(author_fname, ' ', author_lname) AS author, 
+  MIN(released_year) AS first_release 
+FROM 
+  books
+GROUP BY
+  author;
++----------------------+---------------+
+| author               | first_release |
++----------------------+---------------+
+| Jhumpa Lahiri        |          1996 |
+| Neil Gaiman          |          2001 |
+| Dave Eggers          |          2001 |
+| Michael Chabon       |          2000 |
+| Patti Smith          |          2010 |
+| Raymond Carver       |          1981 |
+| Don DeLillo          |          1985 |
+| John Steinbeck       |          1945 |
+| David Foster Wallace |          2004 |
+| Dan Harris           |          2014 |
+| Freida Harris        |          2001 |
+| George Saunders      |          2017 |
++----------------------+---------------+
+```
+- Or, if we wanted to add a 'latest release', we can pop that in our `SELECT` statement as well!
+```sql
+SELECT 
+  CONCAT(author_fname, ' ', author_lname) AS author,
+  MIN(released_year) AS first_release, 
+  MAX(released_year) AS latest_release 
+FROM 
+  books 
+GROUP BY 
+  author;
++----------------------+---------------+----------------+
+| author               | first_release | latest_release |
++----------------------+---------------+----------------+
+| Jhumpa Lahiri        |          1996 |           2003 |
+| Neil Gaiman          |          2001 |           2016 |
+| Dave Eggers          |          2001 |           2013 |
+| Michael Chabon       |          2000 |           2000 |
+| Patti Smith          |          2010 |           2010 |
+| Raymond Carver       |          1981 |           1989 |
+| Don DeLillo          |          1985 |           1985 |
+| John Steinbeck       |          1945 |           1945 |
+| David Foster Wallace |          2004 |           2005 |
+| Dan Harris           |          2014 |           2014 |
+| Freida Harris        |          2001 |           2001 |
+| George Saunders      |          2017 |           2017 |
++----------------------+---------------+----------------+
+```
+#### `SUM(col)`
+Returns a sum of the values in given col
+For example, if we want to know how many pages each author has written, we could combine `SUM()` and `GROUP BY`.
+```sql
+SELECT 
+  CONCAT(author_fname, ' ', author_lname) AS author, 
+  SUM(pages) 
+FROM 
+  books 
+GROUP BY 
+  author;
++----------------------+------------+
+| author               | SUM(pages) |
++----------------------+------------+
+| Jhumpa Lahiri        |        489 |
+| Neil Gaiman          |        977 |
+| Dave Eggers          |       1293 |
+| Michael Chabon       |        634 |
+| Patti Smith          |        304 |
+| Raymond Carver       |        702 |
+| Don DeLillo          |        320 |
+| John Steinbeck       |        181 |
+| David Foster Wallace |        672 |
+| Dan Harris           |        256 |
+| Freida Harris        |        428 |
+| George Saunders      |        367 |
++----------------------+------------+
+```
+#### `AVG()`
+Gives average of given col. Like, if we want to know the average length of each author's books.
+```sql
+SELECT 
+  CONCAT(author_fname, ' ', author_lname) AS author, 
+  AVG(pages) 
+FROM 
+  books 
+GROUP BY 
+  author;
++----------------------+------------+
+| author               | AVG(pages) |
++----------------------+------------+
+| Jhumpa Lahiri        |   244.5000 |
+| Neil Gaiman          |   325.6667 |
+| Dave Eggers          |   431.0000 |
+| Michael Chabon       |   634.0000 |
+| Patti Smith          |   304.0000 |
+| Raymond Carver       |   351.0000 |
+| Don DeLillo          |   320.0000 |
+| John Steinbeck       |   181.0000 |
+| David Foster Wallace |   336.0000 |
+| Dan Harris           |   256.0000 |
+| Freida Harris        |   428.0000 |
+| George Saunders      |   367.0000 |
++----------------------+------------+
+```
+## `DATE`, `TIME`, and `DATETIME` data types
+[MySQL `DATETIME` docs](https://dev.mysql.com/doc/refman/8.0/en/date-and-time-types.html)
+
+[MySQL Date and Time Functions](https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html)
+
+[MySQL `DATE_FORMAT()` docs](https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-format)
+#### `DATE` datatype
+Format: `'YYYY-MM-DD'`
+
+#### `TIME`
+Format: `'HH:MM:SS'` datatype
+`TIME` values may range from '-838:59:59' to '838:59:59'
+
+#### `DATETIME` datatype
+Format: `'YYYY-MM-DD HH:MM:SS'`
+
+#### `TIMESTAMP` datatype
+Gives a `DATETIME` format of the current date and time
+
+#### `CURDATE ()`, `CURTIME()`, `NOW()` functions
+- `CURDATE()` gives current date 
+  - If used with a `DATETIME` fiels, will provide `TIME` as `00:00:00`
+  - e.g. `'YYYY-MM-DD 00:00:00'`
+- `CURTIME()` gives current time
+- `NOW()` gives current `DATETIME`
+
+
