@@ -59,6 +59,10 @@
     - [`DATETIME` datatype](#datetime-datatype)
     - [`TIMESTAMP` datatype](#timestamp-datatype)
     - [`CURDATE ()`, `CURTIME()`, `NOW()` functions](#curdate--curtime-now-functions)
+  - [COMPARING DATES](#comparing-dates)
+- [`BETWEEN` operator](#between-operator)
+    - [MySQL Docs](#mysql-docs)
+- [`IN()` Operator](#in-operator)
 
 
 
@@ -1602,6 +1606,8 @@ Gives a `DATETIME` format of the current date and time
 - `CURTIME()` gives current time
 - `NOW()` gives current `DATETIME`
 
+### COMPARING DATES
+Can use typical operators: `<, >, <=, >=, !=`
 
 ## `IN()` Operator
 [MySQL `IN()` docs](https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_in)
@@ -1609,6 +1615,61 @@ Gives a `DATETIME` format of the current date and time
 SELECT <col(s)> FROM <table> WHERE <item> IN(<item1>, <item2>, ...);
 ```
 
+```sql
+SELECT title, released_year FROM books 
+WHERE author_lname IN ('Carver', 'Lahiri', 'Smith');
+```
+
+## `CASE` statements
+[MySQL `CASE` docs](https://dev.mysql.com/doc/refman/8.0/en/flow-control-functions.html#operator_case)
+
+```sql
+SELECT ... CASE  
+  WHEN <comparison> THEN <result>
+  WHEN <comparison2> THEN <result2>
+  ELSE <default>
+FROM books;
+```
+
+## Named constraints
+```sql
+CREATE TABLE entrants (
+  name VARCHAR(50),
+  age INT,
+  CONSTRAINT min_age_check CHECK (age >= 18)
+)
+```
+
+But, it may be better/more robust to `CAST` the string as a date. e.g. [MySQL `CAST()` docs](https://dev.mysql.com/doc/refman/8.0/en/cast-functions.html#function_cast)
+
+```sql
+CAST('YYYY-MM-DD' AS DATE);
+-- OR
+CAST('HH:MM:SS' AS TIME);
+```
+
+Can also extract certain bits of dates and times with functions such as `DAY()` or `HOUR()`. [More on MySQL date and time functions](https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html)
+
+## `BETWEEN` operator
+#### [MySQL Docs](https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_between)
+
+Looks like:
+```sql
+...WHERE <item> BETWEEN <lo> AND <hi>;
+```
+`lo` and `hi` are *inclusive*
+```sql
+SELECT title, pages FROM books WHERE pages BETWEEN 200 AND 300;
++--------------+-------+
+| title        | pages |
++--------------+-------+
+| The Namesake |   291 |
+| Coraline     |   208 |
+| 10% Happier  |   256 |
++--------------+-------+
+```
+## `IN()` Operator
+[MySQL docs on `IN()`](https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_in)
 ```sql
 SELECT title, released_year FROM books 
 WHERE author_lname IN ('Carver', 'Lahiri', 'Smith');
