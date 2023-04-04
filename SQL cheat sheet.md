@@ -60,9 +60,14 @@
     - [`TIMESTAMP` datatype](#timestamp-datatype)
     - [`CURDATE ()`, `CURTIME()`, `NOW()` functions](#curdate--curtime-now-functions)
   - [COMPARING DATES](#comparing-dates)
+- [`IN()` Operator](#in-operator)
+- [`CASE` statements](#case-statements)
+- [Named constraints](#named-constraints)
 - [`BETWEEN` operator](#between-operator)
     - [MySQL Docs](#mysql-docs)
-- [`IN()` Operator](#in-operator)
+- [`IN()` Operator](#in-operator-1)
+- [`CASE` statements](#case-statements-1)
+- [Named constraints](#named-constraints-1)
 - [Multi-Column Checks](#multi-column-checks)
 - [`ALTER TABLE`](#alter-table)
     - [To add a column](#to-add-a-column)
@@ -1619,7 +1624,36 @@ Gives a `DATETIME` format of the current date and time
 ### COMPARING DATES
 Can use typical operators: `<, >, <=, >=, !=`
 
-Can generally make comparisons between a `DATE` and `STRING` as long as the `STRING` is in the same format. i.e. comparing a `DATE` to `'YYYY-MM-DD'`.
+## `IN()` Operator
+[MySQL `IN()` docs](https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_in)
+```sql
+SELECT <col(s)> FROM <table> WHERE <item> IN(<item1>, <item2>, ...);
+```
+
+```sql
+SELECT title, released_year FROM books 
+WHERE author_lname IN ('Carver', 'Lahiri', 'Smith');
+```
+
+## `CASE` statements
+[MySQL `CASE` docs](https://dev.mysql.com/doc/refman/8.0/en/flow-control-functions.html#operator_case)
+
+```sql
+SELECT ... CASE  
+  WHEN <comparison> THEN <result>
+  WHEN <comparison2> THEN <result2>
+  ELSE <default>
+FROM books;
+```
+
+## Named constraints
+```sql
+CREATE TABLE entrants (
+  name VARCHAR(50),
+  age INT,
+  CONSTRAINT min_age_check CHECK (age >= 18)
+)
+```
 
 But, it may be better/more robust to `CAST` the string as a date. e.g. [MySQL `CAST()` docs](https://dev.mysql.com/doc/refman/8.0/en/cast-functions.html#function_cast)
 
@@ -1651,6 +1685,30 @@ SELECT title, pages FROM books WHERE pages BETWEEN 200 AND 300;
 ```
 ## `IN()` Operator
 [MySQL docs on `IN()`](https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_in)
+```sql
+SELECT title, released_year FROM books 
+WHERE author_lname IN ('Carver', 'Lahiri', 'Smith');
+```
+
+## `CASE` statements
+[MySQL `CASE` docs](https://dev.mysql.com/doc/refman/8.0/en/flow-control-functions.html#operator_case)
+
+```sql
+SELECT ... CASE  
+  WHEN <comparison> THEN <result>
+  WHEN <comparison2> THEN <result2>
+  ELSE <default>
+FROM books;
+```
+
+## Named constraints
+```sql
+CREATE TABLE entrants (
+  name VARCHAR(50),
+  age INT,
+  CONSTRAINT min_age_check CHECK (age >= 18)
+)
+```
 
 ## Multi-Column Checks
 For checking if the *combination* of two columns is unique.
