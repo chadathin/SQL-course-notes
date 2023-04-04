@@ -1,5 +1,4 @@
 # SQL Cheat Sheet <!-- omit from toc -->
-# SQL Cheat Sheet <!-- omit from toc -->
 
 ## Table of Contents<!-- omit from toc -->
 - [__Utility commands__](#utility-commands)
