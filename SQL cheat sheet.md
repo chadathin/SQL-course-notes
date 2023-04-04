@@ -63,6 +63,16 @@
 - [`BETWEEN` operator](#between-operator)
     - [MySQL Docs](#mysql-docs)
 - [`IN()` Operator](#in-operator)
+- [Multi-Column Checks](#multi-column-checks)
+- [`ALTER TABLE`](#alter-table)
+    - [To add a column](#to-add-a-column)
+    - [To drop a column](#to-drop-a-column)
+    - [To rename a table](#to-rename-a-table)
+    - [BUT can also use `RENAME`](#but-can-also-use-rename)
+    - [To rename a column](#to-rename-a-column)
+    - [To modify a data type](#to-modify-a-data-type)
+    - [Change an entire column](#change-an-entire-column)
+    - [Add/Remove constraints](#addremove-constraints)
 
 
 
@@ -1641,3 +1651,80 @@ SELECT title, pages FROM books WHERE pages BETWEEN 200 AND 300;
 ```
 ## `IN()` Operator
 [MySQL docs on `IN()`](https://dev.mysql.com/doc/refman/8.0/en/comparison-operators.html#operator_in)
+
+## Multi-Column Checks
+For checking if the *combination* of two columns is unique.
+For example: A `name` does not have to be unique, and a `address` does not have to be unique, but `name` AND `address` must be unique.
+```sql
+CREATE TABLE companies (
+    supplier_id INT AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(15) NOT NULL UNIQUE,
+    address VARCHAR(255) NOT NULL,
+    PRIMARY KEY (supplier_id),
+    CONSTRAINT name_address UNIQUE (name , address)
+);
+```
+
+## `ALTER TABLE`
+[MySQL `ALTER TABLE` docs](https://dev.mysql.com/doc/refman/8.0/en/alter-table.html)
+
+Can be used to add/delete columns, or add/remove constraints, or just generally alter the table in almost any way.
+
+```sql
+ALTER TABLE <table_name>
+[Action] <value>;
+```
+
+#### To add a column
+```sql
+ALTER TABLE companies
+ADD COLUMN city VARCHAR(50);
+```
+
+#### To drop a column
+```sql
+ALTER TABLE companies
+DROP COLUMN employee_age;
+```
+
+#### To rename a table
+```sql
+ALTER TABLE company RENAME TO companies;
+```
+
+#### BUT can also use `RENAME`
+```sql
+RENAME TABLE <t_name> TO <new_name>;
+```
+
+#### To rename a column
+```sql
+ALTER TABLE companies
+RENAME COLUMN <col> TO <new_col>;
+```
+
+#### To modify a data type
+```sql
+ALTER TABLE <table_name>
+MODIFY <col> <data_type>;
+
+-- example
+ALTER TABLE companies
+MODIFY name VARCHAR(100);
+```
+
+#### Change an entire column
+```sql
+ALTER TABLE <t_name>
+CHANGE <old_col_name> <new_col_name> <new_data_type>;
+
+-- example
+
+ALTER TABLE companies
+CHANGE name company_name VARCHAR(255);
+```
+#### Add/Remove constraints
+```sql
+ALTER TABLE people ADD CONSTRAINT CHECK (age > 18);
+```
