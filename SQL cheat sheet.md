@@ -78,6 +78,12 @@
     - [To modify a data type](#to-modify-a-data-type)
     - [Change an entire column](#change-an-entire-column)
     - [Add/Remove constraints](#addremove-constraints)
+- [`PRIMATY KEY` \& `FOREIGN KEY`](#primaty-key--foreign-key)
+- [`JOINS`](#joins)
+    - [`INNER JOIN` (or just `JOIN`)](#inner-join-or-just-join)
+    - [`LEFT JOIN`](#left-join)
+    - [`RIGHT JOIN`](#right-join)
+- [Views](#views)
 
 
 
@@ -1698,6 +1704,7 @@ SELECT ... CASE
   WHEN <comparison> THEN <result>
   WHEN <comparison2> THEN <result2>
   ELSE <default>
+  END
 FROM books;
 ```
 
@@ -1786,3 +1793,109 @@ CHANGE name company_name VARCHAR(255);
 ```sql
 ALTER TABLE people ADD CONSTRAINT CHECK (age > 18);
 ```
+
+## `PRIMATY KEY` & `FOREIGN KEY`
+__Primary keys__ are unique values for each row. Very useful when dealing with table that have redundant information. For example, a customer might order the same thing twice on the same day, so the quanitity, price, username, etc are all the same. BUT the primary key is different for each order. Defined when creating a table:
+
+```sql
+CREATE TABLE customers (
+  id INT AUTO_INCREMENT,
+  fname VARCHAR(50),
+  lname VARCHAR(50),
+  email VARCHAR(100)
+  PRIMARY KEY(id)
+);
+```
+__Foreign keys__ are keys in a table that reference keys in *another* table.
+
+For example, in our customer example, we might have another table for orders, with a foreign key that references a customer id primary key.
+```sql
+CREATE TABLE orders (
+  id INT AUTO_INCREMENT,
+  order_date DATE,
+  order_total DECIMAL(6,2)
+  cust_id INT,
+  PRIMARY KEY(id),
+  FOREIGN KEY (cust_id) REFERENCES customers(id) ON DELETE CASCADE
+);
+```
+The `ON DELETE CASCADE` ensures that if a customer is deleted, all rows in the orders table with that customer's id will also be deleted.
+
+## `JOINS`
+
+Using out customer tables example, if we want to do joins using our `PRIMARY KEY` from customers and `FOREIGN KEY` from orders.
+
+```sql
+SELECT 
+  CONCAT(fname, ' ', lname) AS name, order_total 
+FROM
+  customers
+JOIN orders
+ON customers.id = orders.cust_id;
+```
+
+More generally
+```sql
+SELECT col1, col2, col3 .. 
+FROM <table1>
+JOIN <table2>
+ON <criteria>;
+```
+Can also use aggregate and `GROUP BY` functions. Can even perform more than one join in a single query.
+
+#### `INNER JOIN` (or just `JOIN`)
+Joins everything from LEFT and RIGHT tables that meet criteria.
+
+#### `LEFT JOIN`
+Joins EVERYTHING from LEFT table and only those items that meet criteria from RIGHT table. If the RIGHT table is missing anything, it ends up being NULL.
+
+
+#### `RIGHT JOIN`
+Just like `LEFT JOIN` except, it takes everything from the RIGHT table and tries to matech from the LEFT table.
+
+
+
+## Views
+Creates a virtual table that can be stored and queried later
+
+```sql
+CREATE VIEW <view_name> AS
+<QUERY_GOES_HERE>
+```
+
+For instance if we make a `VIEW` with the query
+```sql
+CREATE VIEW revs AS
+SELECT title, rating, CONCAT(fname, ' ', lname) AS reviewer FROM series
+JOIN reviews ON reviews.series_id = series.id
+JOIN reviewers ON reviews.reviewer_id = reviewers.id
+ORDER BY title;
+```
+then run `SHOW TABLES`, `revs` shows up
+```sql
+SHOW TABLES;
+
++-----------------+
+| Tables_in_tv_db |
++-----------------+
+| reviewers       |
+| reviews         |
+| revs            |
+| series          |
++-----------------+
+```
+
+`revs` is a *virtual table*. It can be queried just like any other table, but doesn't *technically* exist; we haven't actually created a whole NEW table.
+ ```sql
+SELECT reviewer, AVG(rating) AS average_rating FROM revs GROUP BY reviewer;
++-----------------+----------------+
+| reviewer        | average_rating |
++-----------------+----------------+
+| Thomas Stoneman |       8.020000 |
+| Wyatt Skaggs    |       7.800000 |
+| Kimbra Masters  |       7.988889 |
+| Domingo Cortes  |       7.830000 |
+| Colt Steele     |       8.770000 |
+| Pinkie Petit    |       7.250000 |
++-----------------+----------------+
+ ```
