@@ -84,6 +84,11 @@
     - [`LEFT JOIN`](#left-join)
     - [`RIGHT JOIN`](#right-join)
 - [Views](#views)
+- [WINDOW FUNCTIONS!](#window-functions)
+    - [`OVER()`](#over)
+    - [`PARTITION BY <col_name>`](#partition-by-col_name)
+    - [`ORDER BY` in `OVER()`](#order-by-in-over)
+- [RANK()](#rank)
 
 
 
@@ -1886,6 +1891,8 @@ SHOW TABLES;
 ```
 
 `revs` is a *virtual table*. It can be queried just like any other table, but doesn't *technically* exist; we haven't actually created a whole NEW table.
+
+Also, views can only by insertable and updateable in certain situations. So we can't necessarily expect to perform CRUD operations easily in every instance. But, we *can* do stuff like:
  ```sql
 SELECT reviewer, AVG(rating) AS average_rating FROM revs GROUP BY reviewer;
 +-----------------+----------------+
@@ -1899,3 +1906,133 @@ SELECT reviewer, AVG(rating) AS average_rating FROM revs GROUP BY reviewer;
 | Pinkie Petit    |       7.250000 |
 +-----------------+----------------+
  ```
+
+## WINDOW FUNCTIONS!
+[MySQL Window Function usage docs](https://dev.mysql.com/doc/refman/8.0/en/window-functions-usage.html)
+
+[MySQL Window Function ONLY funcs docs](https://dev.mysql.com/doc/refman/8.0/en/window-function-descriptions.html)
+
+#### `OVER()`
+Data over which to apply an aggragate function.
+```sql
+-- applies AVG() fun to entire salary col
+SELECT emp_no, department, salary, AVG(salary) OVER() FROM employees;
+```
+
+#### `PARTITION BY <col_name>`
+Makes 'windows' which are a lot like 'groups'.
+```sql
+-- applies AVG() fun to entire salary data, grouped by department
+SELECT emp_no, department, salary, AVG(salary) OVER(PARTITION BY department) FROM employees;
+```
+
+#### `ORDER BY` in `OVER()`
+Can use `ORDER BY` inside an `OVER()` clause to re-order rows *within each window*
+```sql
+OVER(ORDER BY salary DESC)
+```
+How is this different? Using `ORDER BY` in an `OVER()` statement results in a *rolling* calculation (rolling sum, avg, min, max, etc).
+
+```sql
+SELECT
+    -> emp_no,
+    ->     department,
+    ->     salary,
+    ->     SUM(salary) OVER(PARTITION BY department) AS dept_payroll,
+    ->     SUM(salary) OVER(PARTITION BY department ORDER BY salary) AS rolling_payroll
+    -> FROM employees;
++--------+------------------+--------+--------------+-----------------+
+| emp_no | department       | salary | dept_payroll | rolling_payroll |
++--------+------------------+--------+--------------+-----------------+
+|     19 | customer service |  31000 |       326000 |           31000 |
+|     15 | customer service |  38000 |       326000 |           69000 |
+|     18 | customer service |  40000 |       326000 |          109000 |
+|     16 | customer service |  45000 |       326000 |          154000 |
+|     21 | customer service |  55000 |       326000 |          209000 |
+|     20 | customer service |  56000 |       326000 |          265000 |
+|     17 | customer service |  61000 |       326000 |          326000 |
+|      5 | engineering      |  67000 |       569000 |           67000 |
+|      2 | engineering      |  69000 |       569000 |          136000 |
+|      3 | engineering      |  70000 |       569000 |          206000 |
+|      1 | engineering      |  80000 |       569000 |          286000 |
+|      6 | engineering      |  89000 |       569000 |          375000 |
+|      7 | engineering      |  91000 |       569000 |          466000 |
+|      4 | engineering      | 103000 |       569000 |          569000 |
+|      8 | sales            |  59000 |       542000 |           59000 |
+|     12 | sales            |  60000 |       542000 |          119000 |
+|     13 | sales            |  61000 |       542000 |          241000 |
+|     14 | sales            |  61000 |       542000 |          241000 |
+|      9 | sales            |  70000 |       542000 |          311000 |
+|     11 | sales            |  72000 |       542000 |          383000 |
+|     10 | sales            | 159000 |       542000 |          542000 |
++--------+------------------+--------+--------------+-----------------+
+```
+
+## RANK()
+Can use RANK() with OVER() to get the rank of any particular column.
+For instance, to get the rank of salaries
+```sql
+SELECT emp_no, department, salary, RANK() OVER(ORDER BY salary DESC) AS salary_rank FROM employees;
++--------+------------------+--------+-------------+
+| emp_no | department       | salary | salary_rank |
++--------+------------------+--------+-------------+
+|     19 | customer service |  31000 |           1 |
+|     15 | customer service |  38000 |           2 |
+|     18 | customer service |  40000 |           3 |
+|     16 | customer service |  45000 |           4 |
+|     21 | customer service |  55000 |           5 |
+|     20 | customer service |  56000 |           6 |
+|      8 | sales            |  59000 |           7 |
+|     12 | sales            |  60000 |           8 |
+|     13 | sales            |  61000 |           9 |
+|     14 | sales            |  61000 |           9 |
+|     17 | customer service |  61000 |           9 |
+|      5 | engineering      |  67000 |          12 |
+|      2 | engineering      |  69000 |          13 |
+|      3 | engineering      |  70000 |          14 |
+|      9 | sales            |  70000 |          14 |
+|     11 | sales            |  72000 |          16 |
+|      1 | engineering      |  80000 |          17 |
+|      6 | engineering      |  89000 |          18 |
+|      7 | engineering      |  91000 |          19 |
+|      4 | engineering      | 103000 |          20 |
+|     10 | sales            | 159000 |          21 |
++--------+------------------+--------+-------------+
+```
+```sql
+SELECT 
+  emp_no, 
+  department, 
+  salary, 
+  -- Gets overall company rank (no `partition`)
+  RANK() OVER(ORDER BY salary DESC) AS salary_rank, 
+  -- Gets rank by dept (`PARTITION BY department`)
+  RANK() OVER(PARTITION BY department ORDER BY salary DESC) AS dept_rank 
+FROM 
+  employees;
++--------+------------------+--------+-------------+-----------+
+| emp_no | department       | salary | salary_rank | dept_rank |
++--------+------------------+--------+-------------+-----------+
+|     17 | customer service |  61000 |          11 |         1 |
+|     20 | customer service |  56000 |          16 |         2 |
+|     21 | customer service |  55000 |          17 |         3 |
+|     16 | customer service |  45000 |          18 |         4 |
+|     18 | customer service |  40000 |          19 |         5 |
+|     15 | customer service |  38000 |          20 |         6 |
+|     19 | customer service |  31000 |          21 |         7 |
+|      4 | engineering      | 103000 |           2 |         1 |
+|      7 | engineering      |  91000 |           3 |         2 |
+|      6 | engineering      |  89000 |           4 |         3 |
+|      1 | engineering      |  80000 |           5 |         4 |
+|      3 | engineering      |  70000 |           7 |         5 |
+|      2 | engineering      |  69000 |           9 |         6 |
+|      5 | engineering      |  67000 |          10 |         7 |
+|     10 | sales            | 159000 |           1 |         1 |
+|     11 | sales            |  72000 |           6 |         2 |
+|      9 | sales            |  70000 |           7 |         3 |
+|     13 | sales            |  61000 |          11 |         4 |
+|     14 | sales            |  61000 |          11 |         4 |
+|     12 | sales            |  60000 |          14 |         6 |
+|      8 | sales            |  59000 |          15 |         7 |
++--------+------------------+--------+-------------+-----------+
+```
