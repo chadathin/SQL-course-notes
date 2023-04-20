@@ -89,6 +89,9 @@
     - [`PARTITION BY <col_name>`](#partition-by-col_name)
     - [`ORDER BY` in `OVER()`](#order-by-in-over)
 - [RANK()](#rank)
+    - [`NTILE()`](#ntile)
+    - [`FIRST_VALUE()`](#first_value)
+    - [`LEAD()` and `LAG()`](#lead-and-lag)
 
 
 
@@ -2036,3 +2039,252 @@ FROM
 |      8 | sales            |  59000 |          15 |         7 |
 +--------+------------------+--------+-------------+-----------+
 ```
+
+#### `NTILE()`
+Provide a number *n*. Breaks column into *n* buckets and returns which bucket each value falls into.
+
+For example, if we give it 4 (effectively breaking the column into quartiles), it will tell us which quartile each number falls into.
+
+```sql
+SELECT 
+    -> emp_no, 
+    -> department, 
+    ->     salary, 
+    ->     -- Makes N buckets in each department, sorted by salary!
+    ->     NTILE(2) OVER(PARTITION BY department ORDER BY salary DESC) as dept_top_bottom
+    -> FROM 
+    -> employees;
++--------+------------------+--------+-------------------+
+| emp_no | department       | salary | dept_top_bottom   |
++--------+------------------+--------+-------------------+
+|     17 | customer service |  61000 |                 1 |
+|     20 | customer service |  56000 |                 1 |
+|     21 | customer service |  55000 |                 1 |
+|     16 | customer service |  45000 |                 1 |
+|     18 | customer service |  40000 |                 2 |
+|     15 | customer service |  38000 |                 2 |
+|     19 | customer service |  31000 |                 2 |
+|      4 | engineering      | 103000 |                 1 |
+|      7 | engineering      |  91000 |                 1 |
+|      6 | engineering      |  89000 |                 1 |
+|      1 | engineering      |  80000 |                 1 |
+|      3 | engineering      |  70000 |                 2 |
+|      2 | engineering      |  69000 |                 2 |
+|      5 | engineering      |  67000 |                 2 |
+|     10 | sales            | 159000 |                 1 |
+|     11 | sales            |  72000 |                 1 |
+|      9 | sales            |  70000 |                 1 |
+|     13 | sales            |  61000 |                 1 |
+|     14 | sales            |  61000 |                 2 |
+|     12 | sales            |  60000 |                 2 |
+|      8 | sales            |  59000 |                 2 |
++--------+------------------+--------+-------------------+
+```
+
+```sql
+SELECT 
+    -> emp_no, 
+    -> department, 
+    ->     salary, 
+    ->     -- Makes N buckets over the entire company, sorted by salary!
+    ->     NTILE(4) OVER(ORDER BY salary DESC) as company_quartiles
+    -> FROM 
+    -> employees;
++--------+------------------+--------+-------------------+
+| emp_no | department       | salary | company_quartiles |
++--------+------------------+--------+-------------------+
+|     10 | sales            | 159000 |                 1 |
+|      4 | engineering      | 103000 |                 1 |
+|      7 | engineering      |  91000 |                 1 |
+|      6 | engineering      |  89000 |                 1 |
+|      1 | engineering      |  80000 |                 1 |
+|     11 | sales            |  72000 |                 1 |
+|      3 | engineering      |  70000 |                 2 |
+|      9 | sales            |  70000 |                 2 |
+|      2 | engineering      |  69000 |                 2 |
+|      5 | engineering      |  67000 |                 2 |
+|     13 | sales            |  61000 |                 2 |
+|     14 | sales            |  61000 |                 3 |
+|     17 | customer service |  61000 |                 3 |
+|     12 | sales            |  60000 |                 3 |
+|      8 | sales            |  59000 |                 3 |
+|     20 | customer service |  56000 |                 3 |
+|     21 | customer service |  55000 |                 4 |
+|     16 | customer service |  45000 |                 4 |
+|     18 | customer service |  40000 |                 4 |
+|     15 | customer service |  38000 |                 4 |
+|     19 | customer service |  31000 |                 4 |
++--------+------------------+--------+-------------------+
+```
+
+```sql
+SELECT 
+    -> emp_no, 
+    -> department, 
+    ->     salary, 
+    ->     -- Compares quartiles between dept and company, sorted by salary!
+    ->     -- For example emp_no 17 is in the top quartile in customer service, but 3rd quartile company-wide
+    ->     NTILE(4) OVER(ORDER BY salary DESC) as comp_quart,
+    ->     NTILE(4) OVER(PARTITION BY department ORDER BY salary DESC) as dept_quart
+    -> FROM 
+    -> employees;
++--------+------------------+--------+------------+------------+
+| emp_no | department       | salary | comp_quart | dept_quart |
++--------+------------------+--------+------------+------------+
+|     17 | customer service |  61000 |          3 |          1 |
+|     20 | customer service |  56000 |          3 |          1 |
+|     21 | customer service |  55000 |          4 |          2 |
+|     16 | customer service |  45000 |          4 |          2 |
+|     18 | customer service |  40000 |          4 |          3 |
+|     15 | customer service |  38000 |          4 |          3 |
+|     19 | customer service |  31000 |          4 |          4 |
+|      4 | engineering      | 103000 |          1 |          1 |
+|                     .........                                |
+|     13 | sales            |  61000 |          2 |          2 |
+|     14 | sales            |  61000 |          3 |          3 |
+|     12 | sales            |  60000 |          3 |          3 |
+|      8 | sales            |  59000 |          3 |          4 |
++--------+------------------+--------+------------+------------+
+```
+
+#### `FIRST_VALUE()`
+Retrieves the first value of a window
+
+```sql
+SELECT 
+  emp_no, 
+  department, 
+  salary, 
+  FIRST_VALUE(emp_no) OVER(PARTITION BY department ORDER BY salary DESC) AS top_paid 
+FROM 
+  employees;
++--------+------------------+--------+----------+
+| emp_no | department       | salary | top_paid |
++--------+------------------+--------+----------+
+|     17 | customer service |  61000 |       17 |
+|     20 | customer service |  56000 |       17 |
+|     21 | customer service |  55000 |       17 |
+|     16 | customer service |  45000 |       17 |
+|     18 | customer service |  40000 |       17 |
+|     15 | customer service |  38000 |       17 |
+|     19 | customer service |  31000 |       17 |
+|      4 | engineering      | 103000 |        4 |
+|      7 | engineering      |  91000 |        4 |
+|      6 | engineering      |  89000 |        4 |
+|      1 | engineering      |  80000 |        4 |
+|      3 | engineering      |  70000 |        4 |
+|      2 | engineering      |  69000 |        4 |
+|      5 | engineering      |  67000 |        4 |
+|     10 | sales            | 159000 |       10 |
+|     11 | sales            |  72000 |       10 |
+|      9 | sales            |  70000 |       10 |
+|     13 | sales            |  61000 |       10 |
+|     14 | sales            |  61000 |       10 |
+|     12 | sales            |  60000 |       10 |
+|      8 | sales            |  59000 |       10 |
++--------+------------------+--------+----------+
+```
+
+#### `LEAD()` and `LAG()`
+
+`LEAD(col)` returns the *next* value of the current row; `LAG()` returns the *previous*
+
+```sql
+SELECT emp_no, department, salary, LAG(salary) OVER(ORDER BY salary DESC) AS prev_salary FROM employees;
++--------+------------------+--------+-------------+
+| emp_no | department       | salary | prev_salary |
++--------+------------------+--------+-------------+
+|     10 | sales            | 159000 |        NULL |
+|      4 | engineering      | 103000 |      159000 |
+|      7 | engineering      |  91000 |      103000 |
+|      6 | engineering      |  89000 |       91000 |
+|      1 | engineering      |  80000 |       89000 |
+|     11 | sales            |  72000 |       80000 |
+|      3 | engineering      |  70000 |       72000 |
+|      9 | sales            |  70000 |       70000 |
+|      2 | engineering      |  69000 |       70000 |
+|      5 | engineering      |  67000 |       69000 |
+|     13 | sales            |  61000 |       67000 |
+|     14 | sales            |  61000 |       61000 |
+|     17 | customer service |  61000 |       61000 |
+|     12 | sales            |  60000 |       61000 |
+|      8 | sales            |  59000 |       60000 |
+|     20 | customer service |  56000 |       59000 |
+|     21 | customer service |  55000 |       56000 |
+|     16 | customer service |  45000 |       55000 |
+|     18 | customer service |  40000 |       45000 |
+|     15 | customer service |  38000 |       40000 |
+|     19 | customer service |  31000 |       38000 |
++--------+------------------+--------+-------------+
+```
+Could be useful in calculating things like differences between rows
+
+```sql
+SELECT 
+  emp_no, 
+  department, 
+  salary, 
+  salary - LAG(salary) OVER(ORDER BY salary DESC) AS salary_diff 
+FROM 
+  employees;
++--------+------------------+--------+-------------+
+| emp_no | department       | salary | salary_diff |
++--------+------------------+--------+-------------+
+|     10 | sales            | 159000 |        NULL |
+|      4 | engineering      | 103000 |      -56000 |
+|      7 | engineering      |  91000 |      -12000 |
+|      6 | engineering      |  89000 |       -2000 |
+|      1 | engineering      |  80000 |       -9000 |
+|     11 | sales            |  72000 |       -8000 |
+|      3 | engineering      |  70000 |       -2000 |
+|      9 | sales            |  70000 |           0 |
+|      2 | engineering      |  69000 |       -1000 |
+|      5 | engineering      |  67000 |       -2000 |
+|     13 | sales            |  61000 |       -6000 |
+|     14 | sales            |  61000 |           0 |
+|     17 | customer service |  61000 |           0 |
+|     12 | sales            |  60000 |       -1000 |
+|      8 | sales            |  59000 |       -1000 |
+|     20 | customer service |  56000 |       -3000 |
+|     21 | customer service |  55000 |       -1000 |
+|     16 | customer service |  45000 |      -10000 |
+|     18 | customer service |  40000 |       -5000 |
+|     15 | customer service |  38000 |       -2000 |
+|     19 | customer service |  31000 |       -7000 |
++--------+------------------+--------+-------------+
+```
+
+Can also partition by a col to get diffs from each dept
+```sql
+SELECT 
+  emp_no, 
+  department, 
+  salary, 
+  salary - LAG(salary) OVER(PARTITION BY department ORDER BY salary DESC) AS salary_diff
+FROM 
+  employees;
++--------+------------------+--------+-------------+
+| emp_no | department       | salary | salary_diff |
++--------+------------------+--------+-------------+
+|     17 | customer service |  61000 |        NULL |
+|     20 | customer service |  56000 |       -5000 |
+|     21 | customer service |  55000 |       -1000 |
+|     16 | customer service |  45000 |      -10000 |
+|     18 | customer service |  40000 |       -5000 |
+|     15 | customer service |  38000 |       -2000 |
+|     19 | customer service |  31000 |       -7000 |
+|      4 | engineering      | 103000 |        NULL |
+|      7 | engineering      |  91000 |      -12000 |
+|      6 | engineering      |  89000 |       -2000 |
+|      1 | engineering      |  80000 |       -9000 |
+|      3 | engineering      |  70000 |      -10000 |
+|      2 | engineering      |  69000 |       -1000 |
+|      5 | engineering      |  67000 |       -2000 |
+|     10 | sales            | 159000 |        NULL |
+|     11 | sales            |  72000 |      -87000 |
+|      9 | sales            |  70000 |       -2000 |
+|     13 | sales            |  61000 |       -9000 |
+|     14 | sales            |  61000 |           0 |
+|     12 | sales            |  60000 |       -1000 |
+|      8 | sales            |  59000 |       -1000 |
++--------+------------------+--------+-------------+
